@@ -602,6 +602,17 @@ input[type="number"]::-webkit-outer-spin-button {
   width: 100%;
 }
 
+.topbar {
+  background-color: #333; /* Dark background color */
+  color: white; /* Text color */
+  padding: 15px 20px; /* Padding for spacing */
+  position: fixed; /* Fixes the header at the top */
+  width: 100%; /* Full width */
+  top: 0; /* Aligns to the top */
+  z-index: 1000; /* Ensures it stays above other content */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
+}
+
 .navbar {
   display: flex;
   justify-content: space-around;
@@ -620,9 +631,15 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .navbar a {
   text-decoration: none;
-  color: #007BFF; /* Change to your preferred color */
+  color: white; /* Link color */
+  transition: color 0.3s; /* Smooth transition for hover effect */
 }
 
 .navbar a:hover {
-  text-decoration: underline;
+  color: #ffcc00; /* Change color on hover */
+}
+
+/* Add some margin to the main content to prevent it from being hidden behind the fixed header */
+.container {
+  margin-top: 100px; /* Adjust based on header height */
 }
