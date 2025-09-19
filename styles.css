@@ -502,3 +502,15 @@ output {
   margin-bottom: 24px;
   resize: none;
 }
+
+#editor-wrapper {
+  border: 1px solid #ccc; /* light border to separate it */
+  padding: 8px;            /* small padding inside the box */
+  margin-top: 8px;         /* small spacing from content above */
+  border-radius: 4px;      /* optional rounded corners */
+  background-color: #fafafa; /* subtle background */
+}
+#editor-container .modal {
+  position: static;  /* so it stays inside the box */
+  width: 100%;
+}
