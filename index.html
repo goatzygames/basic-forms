@@ -52,6 +52,9 @@
       <div class="row right">
         <button id="create-form-btn" class="btn primary">Create Form</button>
       </div>
+	  
+	  <div id="editor-container"></div>
+
 
       <div id="share-area" class="share hidden">
         <h3>Form created!</h3>
@@ -120,23 +123,23 @@
       });
     }
 
-    function openEditor(index) {
-      const q = questions[index];
-      const modal = document.createElement('div');
-      modal.className = 'modal';
-      modal.innerHTML = `
-        <div class="modal-card">
-          <h3>Edit question</h3>
-          <label class="field"><span>Label</span><input id="qe-label" value="${escapeAttr(q.label)}"></label>
-          <label class="field"><span>Required</span><input id="qe-required" type="checkbox" ${q.required ? 'checked' : ''}></label>
-          <div id="qe-options-area"></div>
-          <div class="row right">
-            <button id="qe-save" class="btn primary">Save</button>
-            <button id="qe-cancel" class="btn">Cancel</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
+function openEditor(index) {
+  const q = questions[index];
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-card">
+      <h3>Edit question</h3>
+      <label class="field"><span>Label</span><input id="qe-label" value="${escapeAttr(q.label)}"></label>
+      <label class="field"><span>Required</span><input id="qe-required" type="checkbox" ${q.required ? 'checked' : ''}></label>
+      <div id="qe-options-area"></div>
+      <div class="row right">
+        <button id="qe-save" class="btn primary">Save</button>
+        <button id="qe-cancel" class="btn">Cancel</button>
+      </div>
+    </div>
+  `;
+      document.getElementById('editor-container').appendChild(modal);
 
       const area = modal.querySelector('#qe-options-area');
       if (q.type === 'multiple' || q.type === 'checkboxes' || q.type === 'dropdown') {
