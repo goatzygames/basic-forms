@@ -601,3 +601,28 @@ input[type="number"]::-webkit-outer-spin-button {
 #editor-container {
   width: 100%;
 }
+
+.navbar {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+}
+
+.navbar ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.navbar li {
+  display: inline;
+  margin: 0 15px;
+}
+
+.navbar a {
+  text-decoration: none;
+  color: #007BFF; /* Change to your preferred color */
+}
+
+.navbar a:hover {
+  text-decoration: underline;
+}

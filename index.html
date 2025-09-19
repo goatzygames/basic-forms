@@ -9,6 +9,18 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+
+<header class="topbar">
+  <h1>Basic Forms</h1>
+  <p class="muted">Create surveys & shareable forms</p>
+  <nav class="navbar">
+    <ul>
+      <li><a href="#create-form">Create Form</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+</header>
   <main class="container">
     <header class="topbar">
       <h1>Basic Forms</h1>
@@ -48,7 +60,7 @@
 		  
 		  <button id="add-question-btn" class="btn">Add question</button>
 		  
-		  <div id="editor-wrapper">
+		  <div id="editor-wrapper"><br>
   <div id="editor-container"></div>
 </div>
         </div>
@@ -59,7 +71,6 @@
       </div>
 
       <div id="share-area" class="share hidden">
-        <h3>Form created!</h3>
         <p>Shareable link:</p>
         <input id="share-link" readonly />
         <div class="row" style="display: none;">
@@ -68,6 +79,14 @@
         </div>
       </div>
     </section>
+	
+	<script>
+	document.getElementById('share-link').addEventListener('click', function() {
+    this.select(); // Select the text in the input field
+    document.execCommand('copy'); // Copy the selected text to the clipboard
+    alert('Copied to clipboard: ' + this.value); // Optional: Alert the user 
+	});
+	</script>
 
     <footer class="foot muted">
       <small>Made with Firebase & Chart.js — example Google Forms–like app</small>
