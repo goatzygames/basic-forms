@@ -1,10 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Basic Form — Answer</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -14,334 +14,92 @@
       <p id="form-meta" class="muted"></p>
     </header>
 
-    <section id="form-card" class="card hidden">
+    <section class="card hidden" id="form-card">
       <form id="answer-form"></form>
-
       <div class="row right">
-        <button id="submit-answer" class="btn primary">Submit</button>
-        <button id="toggle-results" class="btn">See Results</button>
-      </div>
-
-      <div id="result-area" class="hidden">
-        <h3>Results</h3>
-        <div id="results-content"></div>
+        <button id="submit-btn" class="btn primary">Submit</button>
       </div>
     </section>
 
-    <div id="notfound" class="card hidden">
+    <div class="card hidden" id="notfound">
       <h2>Form not found</h2>
-      <p>Check the link or ask the creator for the correct shareable link.</p>
     </div>
-
-    <footer class="foot muted">
-      <small>Answers are stored in Firebase.</small>
-    </footer>
   </main>
 
-  <script type="module" src="main.js"></script>
   <script type="module">
-    import {
-      fetchFormDoc,
-      submitFormAnswer,
-      listenFormRealtime
-    } from './main.js';
+    import { fetchFormDoc, submitFormAnswer } from './main.js';
 
     const params = new URLSearchParams(location.search);
     const formId = params.get('id');
     const titleEl = document.getElementById('form-title');
     const metaEl = document.getElementById('form-meta');
-    const card = document.getElementById('form-card');
-    const notfound = document.getElementById('notfound');
+    const formCard = document.getElementById('form-card');
+    const notFound = document.getElementById('notfound');
     const answerForm = document.getElementById('answer-form');
-    const submitBtn = document.getElementById('submit-answer');
-    const resultsArea = document.getElementById('result-area');
-    const resultsContent = document.getElementById('results-content');
-    const toggleResults = document.getElementById('toggle-results');
 
-    if (!formId) {
-      titleEl.textContent = 'Invalid form link';
-      notfound.classList.remove('hidden');
-    } else {
-      loadForm(formId);
-    }
+    if (!formId) { notFound.classList.remove('hidden'); titleEl.textContent='Invalid link'; }
 
     let currentForm = null;
-    let charts = {}; // map question.id -> Chart instance
 
-    async function loadForm(id) {
-      try {
-        const doc = await fetchFormDoc(id);
-        if (!doc) {
-          notfound.classList.remove('hidden');
-          return;
-        }
-        currentForm = doc;
-        titleEl.textContent = doc.name;
-        metaEl.textContent = `Created by ${doc.creatorName || 'Anonymous'}`;
-        renderQuestionsUI(doc.questions || []);
-        card.classList.remove('hidden');
-
-        // listen for realtime updates (answers added / edits)
-        listenFormRealtime(id, (updatedDoc) => {
-          currentForm = updatedDoc;
-          // if results visible, refresh them
-          if (!resultsArea.classList.contains('hidden')) {
-            renderResults();
-          }
-        });
-      } catch (err) {
-        console.error(err);
-        alert('Error loading form. See console.');
-      }
+    async function loadForm() {
+      const doc = await fetchFormDoc(formId);
+      if (!doc) { notFound.classList.remove('hidden'); return; }
+      currentForm = doc;
+      titleEl.textContent = doc.name;
+      metaEl.textContent = `Created by ${doc.creatorName||'Anonymous'}`;
+      renderQuestions(doc.questions||[]);
+      formCard.classList.remove('hidden');
     }
 
-    function renderQuestionsUI(questions = []) {
-      answerForm.innerHTML = '';
-      questions.forEach(q => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'field';
+    function renderQuestions(questions) {
+      answerForm.innerHTML='';
+      questions.forEach(q=>{
+        const div = document.createElement('div');
+        div.className='field';
         const label = document.createElement('label');
-        label.innerHTML = `<span>${escapeHtml(q.label)} ${q.required ? '<em class="muted">*</em>' : ''}</span>`;
-        wrapper.appendChild(label);
+        label.innerHTML=`<span>${q.label} ${q.required?'<em class="muted">*</em>':''}</span>`;
+        div.appendChild(label);
 
         let inputEl;
-        if (q.type === 'short') {
-          inputEl = document.createElement('input');
-          inputEl.type = 'text';
-          inputEl.name = q.id;
-          inputEl.placeholder = q.label;
-        } else if (q.type === 'paragraph') {
-          inputEl = document.createElement('textarea');
-          inputEl.name = q.id;
-          inputEl.rows = 4;
-        } else if (q.type === 'multiple') {
-          inputEl = document.createElement('div');
-          q.options.forEach((opt, idx) => {
-            const id = `${q.id}_opt_${idx}`;
-            inputEl.innerHTML += `<div class="option"><input type="radio" name="${q.id}" id="${id}" value="${escapeAttr(opt)}"><label for="${id}">${escapeHtml(opt)}</label></div>`;
+        if(q.type==='short'){ inputEl=document.createElement('input'); inputEl.type='text'; inputEl.name=q.id; inputEl.placeholder=q.label; }
+        else if(q.type==='paragraph'){ inputEl=document.createElement('textarea'); inputEl.name=q.id; inputEl.rows=4; }
+        else if(q.type==='multiple'||q.type==='checkboxes'){
+          inputEl=document.createElement('div');
+          q.options.forEach((opt,idx)=>{
+            const id=`${q.id}_${idx}`;
+            inputEl.innerHTML+=`<div class="option"><input type="${q.type==='multiple'?'radio':'checkbox'}" name="${q.id}" id="${id}" value="${opt}"><label for="${id}">${opt}</label></div>`;
           });
-        } else if (q.type === 'checkboxes') {
-          inputEl = document.createElement('div');
-          q.options.forEach((opt, idx) => {
-            const id = `${q.id}_cb_${idx}`;
-            inputEl.innerHTML += `<div class="option"><input type="checkbox" name="${q.id}" id="${id}" value="${escapeAttr(opt)}"><label for="${id}">${escapeHtml(opt)}</label></div>`;
-          });
-        } else if (q.type === 'dropdown') {
-          inputEl = document.createElement('select');
-          inputEl.name = q.id;
-          const placeholder = document.createElement('option');
-          placeholder.value = '';
-          placeholder.textContent = 'Select…';
-          inputEl.appendChild(placeholder);
-          q.options.forEach(opt => {
-            const o = document.createElement('option');
-            o.value = opt;
-            o.textContent = opt;
-            inputEl.appendChild(o);
-          });
-        } else if (q.type === 'linear') {
-          inputEl = document.createElement('div');
-          inputEl.innerHTML = `<div class="row"><input type="range" name="${q.id}" min="${q.scaleMin}" max="${q.scaleMax}" value="${Math.round((q.scaleMin+q.scaleMax)/2)}" id="${q.id}_range"><output for="${q.id}_range" id="${q.id}_out"></output></div>`;
-        } else {
-          inputEl = document.createElement('input'); inputEl.name = q.id;
+        } else if(q.type==='dropdown'){
+          inputEl=document.createElement('select'); inputEl.name=q.id;
+          const placeholder=document.createElement('option'); placeholder.value=''; placeholder.textContent='Select…'; inputEl.appendChild(placeholder);
+          q.options.forEach(opt=>{ const o=document.createElement('option'); o.value=opt; o.textContent=opt; inputEl.appendChild(o); });
+        } else if(q.type==='linear'){
+          inputEl=document.createElement('div');
+          inputEl.innerHTML=`<input type="range" name="${q.id}" min="${q.scaleMin}" max="${q.scaleMax}" value="${Math.round((q.scaleMin+q.scaleMax)/2)}"><output></output>`;
+          const range=inputEl.querySelector('input'); const out=inputEl.querySelector('output'); out.value=range.value;
+          range.addEventListener('input',()=>{ out.value=range.value; });
         }
 
-        wrapper.appendChild(inputEl);
-        // for linear range, update output
-        if (q.type === 'linear') {
-          const out = wrapper.querySelector(`#${q.id}_out`);
-          const range = wrapper.querySelector(`#${q.id}_range`);
-          out.value = range.value;
-          range.addEventListener('input', () => { out.value = range.value; });
-        }
-
-        answerForm.appendChild(wrapper);
+        div.appendChild(inputEl);
+        answerForm.appendChild(div);
       });
     }
 
-    submitBtn.onclick = async (e) => {
+    document.getElementById('submit-btn').onclick=async e=>{
       e.preventDefault();
-      if (!currentForm) return;
-      // collect answers
-      const answers = {};
-      let valid = true;
-      (currentForm.questions || []).forEach(q => {
-        if (q.type === 'short' || q.type === 'paragraph') {
-          const el = answerForm.querySelector(`[name="${q.id}"]`);
-          answers[q.id] = el ? el.value.trim() : '';
-        } else if (q.type === 'multiple') {
-          const el = answerForm.querySelector(`[name="${q.id}"]:checked`);
-          answers[q.id] = el ? el.value : '';
-        } else if (q.type === 'checkboxes') {
-          const els = Array.from(answerForm.querySelectorAll(`[name="${q.id}"]:checked`)).map(i => i.value);
-          answers[q.id] = els;
-        } else if (q.type === 'dropdown') {
-          const el = answerForm.querySelector(`[name="${q.id}"]`);
-          answers[q.id] = el ? el.value : '';
-        } else if (q.type === 'linear') {
-          const el = answerForm.querySelector(`[name="${q.id}_range"]`);
-          answers[q.id] = el ? el.value : '';
-        }
-        if (q.required) {
-          const v = answers[q.id];
-          if ((Array.isArray(v) && v.length === 0) || (!Array.isArray(v) && (v === '' || v === null || v === undefined))) {
-            alert(`Please answer required question: ${q.label}`);
-            valid = false;
-          }
-        }
+      const answers={};
+      currentForm.questions.forEach(q=>{
+        if(q.type==='short'||q.type==='paragraph'){ answers[q.id]=answerForm.querySelector(`[name="${q.id}"]`).value.trim(); }
+        else if(q.type==='multiple'){ const el=answerForm.querySelector(`[name="${q.id}"]:checked`); answers[q.id]=el?el.value:''; }
+        else if(q.type==='checkboxes'){ const els=Array.from(answerForm.querySelectorAll(`[name="${q.id}"]:checked`)).map(i=>i.value); answers[q.id]=els; }
+        else if(q.type==='dropdown'){ answers[q.id]=answerForm.querySelector(`[name="${q.id}"]`).value; }
+        else if(q.type==='linear'){ answers[q.id]=answerForm.querySelector(`[name="${q.id}"]`).value; }
       });
-      if (!valid) return;
-
-      // push answer object
-      const answerObj = {
-        submittedAt: new Date().toISOString(),
-        values: answers
-      };
-      try {
-        await submitFormAnswer(currentForm.id, answerObj);
-        alert('Thanks — your response was submitted.');
-        // clear form inputs
-        answerForm.reset();
-        // also update range outputs if present
-        (currentForm.questions || []).forEach(q => {
-          if (q.type === 'linear') {
-            const out = answerForm.querySelector(`#${q.id}_out`);
-            const range = answerForm.querySelector(`#${q.id}_range`);
-            if (range && out) out.value = range.value;
-          }
-        });
-      } catch (err) {
-        console.error(err);
-        alert('Error submitting answer.');
-      }
+      await submitFormAnswer(formId, { submittedAt:new Date().toISOString(), values:answers });
+      alert('Submitted!'); answerForm.reset();
     };
 
-    toggleResults.onclick = (e) => {
-      e.preventDefault();
-      if (!resultsArea.classList.contains('hidden')) {
-        resultsArea.classList.add('hidden');
-        toggleResults.textContent = 'See Results';
-      } else {
-        resultsArea.classList.remove('hidden');
-        toggleResults.textContent = 'Hide Results';
-        renderResults();
-      }
-    };
-
-    function renderResults() {
-      resultsContent.innerHTML = '';
-      const questions = (currentForm.questions || []);
-      const answers = (currentForm.answers || []);
-      if (!answers.length) {
-        resultsContent.innerHTML = '<p class="muted">No responses yet.</p>';
-        return;
-      }
-      // for each question, show aggregated view
-      questions.forEach(q => {
-        const qCard = document.createElement('div');
-        qCard.className = 'result-question';
-        qCard.innerHTML = `<h4>${escapeHtml(q.label)}</h4>`;
-        // depending on type show chart or list
-        if (q.type === 'multiple' || q.type === 'dropdown' || q.type === 'checkboxes') {
-          // compute counts
-          const counts = {};
-          const options = (q.options || []).slice();
-          // init counts for options
-          options.forEach(opt => counts[opt] = 0);
-          answers.forEach(a => {
-            const v = a.values[q.id];
-            if (Array.isArray(v)) {
-              v.forEach(x => { if (counts[x] !== undefined) counts[x]++; else counts[x] = (counts[x]||0)+1; });
-            } else {
-              if (v === '' || v === null || v === undefined) { /* skip */ }
-              else {
-                if (counts[v] !== undefined) counts[v]++; else counts[v] = (counts[v]||0)+1;
-              }
-            }
-          });
-
-          // create canvas
-          const canvas = document.createElement('canvas');
-          canvas.id = 'chart-' + q.id;
-          qCard.appendChild(canvas);
-          resultsContent.appendChild(qCard);
-
-          // prepare data
-          const labels = Object.keys(counts);
-          const data = Object.values(counts);
-          // destroy existing chart if present
-          if (charts[q.id]) {
-            charts[q.id].destroy();
-            delete charts[q.id];
-          }
-          charts[q.id] = new Chart(canvas.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-              labels,
-              datasets: [{
-                data
-              }]
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: { position: 'bottom' },
-                title: { display: false }
-              }
-            }
-          });
-        } else {
-          // text or linear results: show list or stats
-          if (q.type === 'short' || q.type === 'paragraph') {
-            const list = document.createElement('ul');
-            list.className = 'text-answers';
-            answers.forEach(a => {
-              const v = a.values[q.id];
-              if (v && v.toString().trim()) {
-                const li = document.createElement('li');
-                li.textContent = v;
-                list.appendChild(li);
-              }
-            });
-            if (!list.children.length) {
-              qCard.innerHTML += '<p class="muted">No responses yet.</p>';
-            } else {
-              qCard.appendChild(list);
-            }
-            resultsContent.appendChild(qCard);
-          } else if (q.type === 'linear') {
-            // compute min/avg/max
-            const vals = answers.map(a => Number(a.values[q.id]) || 0).filter(v => v !== 0 || v === 0);
-            if (!vals.length) {
-              qCard.innerHTML += '<p class="muted">No responses yet.</p>';
-            } else {
-              const sum = vals.reduce((s, n) => s + n, 0);
-              const avg = (sum / vals.length).toFixed(2);
-              const min = Math.min(...vals);
-              const max = Math.max(...vals);
-              qCard.innerHTML += `<p>Responses: ${vals.length} — avg: ${avg}, min: ${min}, max: ${max}</p>`;
-              // small bar chart
-              const canvas = document.createElement('canvas');
-              qCard.appendChild(canvas);
-              resultsContent.appendChild(qCard);
-              if (charts[q.id]) { charts[q.id].destroy(); delete charts[q.id]; }
-              charts[q.id] = new Chart(canvas.getContext('2d'), {
-                type: 'bar',
-                data: {
-                  labels: vals.map((_, i) => `#${i+1}`),
-                  datasets: [{ data: vals }]
-                },
-                options: { responsive: true, plugins: { legend: { display: false } } }
-              });
-            }
-          }
-        }
-      });
-    }
-
-    // helpers
-    function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, (m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-    function escapeAttr(s){ return (s+'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    loadForm();
   </script>
 </body>
 </html>

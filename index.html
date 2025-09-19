@@ -1,12 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Basic Forms — Create</title>
-  <link rel="stylesheet" href="styles.css" />
-  <!-- Chart.js only needed on form page, but safe to include -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="container">
@@ -16,38 +14,12 @@
     </header>
 
     <section class="card">
-      <h2>Create a new form</h2>
+      <input type="text" id="form-name" class="form-title" placeholder="Untitled Form">
+      <textarea id="form-description" class="form-desc" placeholder="Form description"></textarea>
 
-      <label class="field">
-        <span>Form name</span>
-        <input id="form-name" placeholder="Customer feedback" />
-      </label>
+      <div id="questions-container"></div>
 
-      <label class="field">
-        <span>Creator name (optional)</span>
-        <input id="creator-name" placeholder="Your name" />
-      </label>
-
-      <label class="field">
-        <span>Password (optional — stored in plain text)</span>
-        <input id="form-password" placeholder="Leave empty for no password" />
-      </label>
-
-      <div id="questions-area">
-        <h3>Questions</h3>
-        <div id="questions-list"></div>
-        <div class="row">
-          <select id="new-q-type">
-            <option value="short">Short text</option>
-            <option value="paragraph">Paragraph</option>
-            <option value="multiple">Multiple choice</option>
-            <option value="checkboxes">Checkboxes</option>
-            <option value="dropdown">Dropdown</option>
-            <option value="linear">Linear scale (1..5)</option>
-          </select>
-          <button id="add-question-btn" class="btn">Add question</button>
-        </div>
-      </div>
+      <button id="add-question-btn" class="floating-btn">+</button>
 
       <div class="row right">
         <button id="create-form-btn" class="btn primary">Create Form</button>
@@ -55,196 +27,112 @@
 
       <div id="share-area" class="share hidden">
         <h3>Form created!</h3>
-        <p>Shareable link:</p>
-        <input id="share-link" readonly />
+        <input id="share-link" readonly>
         <div class="row">
           <a id="open-link" class="btn" target="_blank">Open form</a>
           <a id="open-edit" class="btn">Open editor</a>
         </div>
       </div>
     </section>
-
-    <footer class="foot muted">
-      <small>Made with Firebase & Chart.js — example Google Forms–like app</small>
-    </footer>
   </main>
 
-  <script type="module" src="main.js"></script>
   <script type="module">
-    import {
-      createFormDoc,
-      uidShort
-    } from './main.js';
+  import { createFormDoc, uidShort } from './main.js';
 
-    // UI helpers
-    const qList = document.getElementById('questions-list');
-    const addBtn = document.getElementById('add-question-btn');
-    const newQType = document.getElementById('new-q-type');
-    const createBtn = document.getElementById('create-form-btn');
-    const shareArea = document.getElementById('share-area');
-    const shareLinkInput = document.getElementById('share-link');
-    const openLink = document.getElementById('open-link');
-    const openEdit = document.getElementById('open-edit');
+  const container = document.getElementById('questions-container');
+  const addBtn = document.getElementById('add-question-btn');
+  const createBtn = document.getElementById('create-form-btn');
+  const shareArea = document.getElementById('share-area');
+  const shareLinkInput = document.getElementById('share-link');
+  const openLink = document.getElementById('open-link');
+  const openEdit = document.getElementById('open-edit');
 
-    // in-memory questions
-    let questions = [];
+  let questions = [];
 
-    function renderQuestions() {
-      qList.innerHTML = '';
-      questions.forEach((q, idx) => {
-        const div = document.createElement('div');
-        div.className = 'question-edit';
-        div.innerHTML = `
-          <div class="q-head">
-            <strong>${idx + 1}. ${escapeHtml(q.label || '(no label)')}</strong>
-            <div>
-              <button class="btn small edit">Edit</button>
-              <button class="btn small danger delete">Delete</button>
-            </div>
-          </div>
-          <div class="q-meta">
-            <em>${typeToLabel(q.type)}</em>
-            ${q.type === 'multiple' || q.type === 'checkboxes' || q.type === 'dropdown' ? `<div class="options">Options: ${q.options.map(o => escapeHtml(o)).join(', ')}</div>` : ''}
-            ${q.type === 'linear' ? `<div class="options">Scale: ${q.scaleMin} — ${q.scaleMax}</div>` : ''}
-          </div>
-        `;
-        // edit/delete handlers
-        div.querySelector('.delete').onclick = () => {
-          questions.splice(idx, 1);
-          renderQuestions();
-        };
-        div.querySelector('.edit').onclick = () => {
-          openEditor(idx);
-        };
-        qList.appendChild(div);
-      });
-    }
-
-    function openEditor(index) {
-      const q = questions[index];
-      const modal = document.createElement('div');
-      modal.className = 'modal';
-      modal.innerHTML = `
-        <div class="modal-card">
-          <h3>Edit question</h3>
-          <label class="field"><span>Label</span><input id="qe-label" value="${escapeAttr(q.label)}"></label>
-          <label class="field"><span>Required</span><input id="qe-required" type="checkbox" ${q.required ? 'checked' : ''}></label>
-          <div id="qe-options-area"></div>
-          <div class="row right">
-            <button id="qe-save" class="btn primary">Save</button>
-            <button id="qe-cancel" class="btn">Cancel</button>
+  function renderQuestions() {
+    container.innerHTML = '';
+    questions.forEach((q, idx) => {
+      const card = document.createElement('div');
+      card.className = 'question-card';
+      card.innerHTML = `
+        <div class="q-header">
+          <strong>${idx + 1}. ${q.label || '(no label)'}</strong>
+          <div>
+            <button class="btn small edit">Edit</button>
+            <button class="btn small danger delete">Delete</button>
           </div>
         </div>
+        <div class="q-meta">
+          <em>${q.type}</em>
+          ${q.options ? `<div class="options">${q.options.join(', ')}</div>` : ''}
+          ${q.scaleMin ? `<div class="options">Scale: ${q.scaleMin} — ${q.scaleMax}</div>` : ''}
+        </div>
       `;
-      document.body.appendChild(modal);
+      card.querySelector('.delete').onclick = () => { questions.splice(idx,1); renderQuestions(); };
+      card.querySelector('.edit').onclick = () => editQuestion(idx);
+      container.appendChild(card);
+    });
+  }
 
-      const area = modal.querySelector('#qe-options-area');
-      if (q.type === 'multiple' || q.type === 'checkboxes' || q.type === 'dropdown') {
-        area.innerHTML = `<label class="field"><span>Options (one per line)</span><textarea id="qe-options" rows="5">${escapeAttr(q.options.join('\n'))}</textarea></label>`;
-      } else if (q.type === 'linear') {
-        area.innerHTML = `<div class="row"><label class="field"><span>Min</span><input id="qe-min" type="number" value="${q.scaleMin}"></label><label class="field"><span>Max</span><input id="qe-max" type="number" value="${q.scaleMax}"></label></div>`;
-      } else {
-        area.innerHTML = '';
-      }
+  function editQuestion(index) {
+    const q = questions[index];
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-card">
+        <h3>Edit Question</h3>
+        <label>Label<input id="q-label" value="${q.label || ''}"></label>
+        <label>Required <input type="checkbox" id="q-required" ${q.required?'checked':''}></label>
+        <div id="q-options-area"></div>
+        <div class="row right">
+          <button id="q-save" class="btn primary">Save</button>
+          <button id="q-cancel" class="btn">Cancel</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
 
-      modal.querySelector('#qe-cancel').onclick = () => modal.remove();
-      modal.querySelector('#qe-save').onclick = () => {
-        q.label = modal.querySelector('#qe-label').value.trim() || '(no label)';
-        q.required = modal.querySelector('#qe-required').checked;
-        if (q.type === 'multiple' || q.type === 'checkboxes' || q.type === 'dropdown') {
-          q.options = modal.querySelector('#qe-options').value.split('\n').map(s => s.trim()).filter(Boolean);
-        } else if (q.type === 'linear') {
-          q.scaleMin = Number(modal.querySelector('#qe-min').value) || 1;
-          q.scaleMax = Number(modal.querySelector('#qe-max').value) || 5;
-          if (q.scaleMin >= q.scaleMax) q.scaleMax = q.scaleMin + 1;
-        }
-        questions[index] = q;
-        modal.remove();
-        renderQuestions();
-      };
+    const optionsArea = modal.querySelector('#q-options-area');
+    if (q.type === 'multiple' || q.type === 'checkboxes' || q.type === 'dropdown') {
+      optionsArea.innerHTML = `<textarea id="q-options-text" rows="5">${q.options.join('\n')}</textarea>`;
+    } else if (q.type === 'linear') {
+      optionsArea.innerHTML = `<input type="number" id="q-min" value="${q.scaleMin}"> - <input type="number" id="q-max" value="${q.scaleMax}">`;
     }
 
-    addBtn.onclick = () => {
-      const type = newQType.value;
-      const q = {
-        id: uidShort(),
-        type,
-        label: typeToLabel(type),
-        required: false,
-        options: [],
-        scaleMin: 1,
-        scaleMax: 5
-      };
-      // default options for multiple/dropdown/checkboxes
-      if (type === 'multiple' || type === 'checkboxes' || type === 'dropdown') {
-        q.options = ['Option 1', 'Option 2', 'Option 3'];
+    modal.querySelector('#q-cancel').onclick = () => modal.remove();
+    modal.querySelector('#q-save').onclick = () => {
+      q.label = modal.querySelector('#q-label').value.trim() || '(no label)';
+      q.required = modal.querySelector('#q-required').checked;
+      if (q.type === 'multiple' || q.type === 'checkboxes' || q.type === 'dropdown') {
+        q.options = modal.querySelector('#q-options-text').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      } else if (q.type === 'linear') {
+        q.scaleMin = Number(modal.querySelector('#q-min').value)||1;
+        q.scaleMax = Number(modal.querySelector('#q-max').value)||(q.scaleMin+1);
       }
-      if (type === 'linear') {
-        q.scaleMin = 1; q.scaleMax = 5;
-      }
-      questions.push(q);
+      questions[index]=q;
+      modal.remove();
       renderQuestions();
     };
+  }
 
-    createBtn.onclick = async () => {
-      const name = document.getElementById('form-name').value.trim();
-      if (!name) return alert('Please enter a form name.');
-      const password = document.getElementById('form-password').value;
-      const creatorName = document.getElementById('creator-name').value.trim() || 'Anonymous';
-      if (!questions.length) {
-        if (!confirm('Create an empty form with no questions?')) return;
-      }
-      // finalize question labels if empty
-      questions = questions.map((q, i) => ({
-        ...q,
-        label: q.label || `Question ${i + 1}`
-      }));
-
-      // create id
-      const safe = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'form';
-      const formId = `${safe}-${uidShort()}`;
-
-      const formObj = {
-        id: formId,
-        name,
-        password: password || null,
-        creatorName,
-        createdAt: new Date().toISOString(),
-        questions,
-        answers: [] // per requirement: answers array stored in doc
-      };
-
-      try {
-        await createFormDoc(formId, formObj);
-        shareArea.classList.remove('hidden');
-        const link = `${location.origin}${location.pathname.replace(/index\.html$/, '')}form.html?id=${encodeURIComponent(formId)}`;
-        shareLinkInput.value = link;
-        openLink.href = link;
-        openEdit.href = `edit-form.html?id=${encodeURIComponent(formId)}`;
-        // scroll to share area
-        shareArea.scrollIntoView({ behavior: 'smooth' });
-      } catch (err) {
-        console.error(err);
-        alert('Error creating form — see console.');
-      }
-    };
-
-    function typeToLabel(t) {
-      switch (t) {
-        case 'short': return 'Short text';
-        case 'paragraph': return 'Paragraph';
-        case 'multiple': return 'Multiple choice';
-        case 'checkboxes': return 'Checkboxes';
-        case 'dropdown': return 'Dropdown';
-        case 'linear': return 'Linear scale';
-        default: return t;
-      }
-    }
-
-    // small helpers
-    function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, (m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-    function escapeAttr(s){ return (s+'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  addBtn.onclick = () => {
+    const q = { id: uidShort(), type: 'short', label:'Untitled question', required:false, options:[], scaleMin:1, scaleMax:5 };
+    questions.push(q);
     renderQuestions();
+  };
+
+  createBtn.onclick = async () => {
+    const name = document.getElementById('form-name').value.trim()||'Untitled Form';
+    const formId = `${name.toLowerCase().replace(/\W+/g,'-')}-${uidShort()}`;
+    const formObj = { id: formId, name, createdAt: new Date().toISOString(), questions, answers: [] };
+    await createFormDoc(formId, formObj);
+    shareArea.classList.remove('hidden');
+    shareLinkInput.value = `${location.origin}/form.html?id=${formId}`;
+    openLink.href = shareLinkInput.value;
+    openEdit.href = `edit-form.html?id=${formId}`;
+  };
+
+  renderQuestions();
   </script>
 </body>
 </html>
