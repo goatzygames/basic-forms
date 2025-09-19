@@ -12,11 +12,12 @@ const firebaseConfig = {
   apiKey: "AIzaSyCtLvR-Do2q-AzMZsXIYn-MdRkBs3PvuUA",
   authDomain: "basic-forms-db145.firebaseapp.com",
   projectId: "basic-forms-db145",
-  storageBucket: "basic-forms-db145.firebasestorage.app",
+  storageBucket: "basic-forms-db145.appspot.com", // FIXED
   messagingSenderId: "272342059583",
   appId: "1:272342059583:web:8a9af2d6c15de50575868a",
   measurementId: "G-37Z6D6JFP0"
 };
+
 
 // initialize
 const app = initializeApp(firebaseConfig);
