@@ -9,24 +9,28 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
+<br><br><br>
 <header class="topbar">
+<a href="index.html">
   <h1>Basic Forms</h1>
+</a>
   <p class="muted">Create surveys & shareable forms</p>
   <nav class="navbar">
     <ul>
-      <li><a href="#create-form">Create Form</a></li>
-      <li><a href="#about">About</a></li>
-      <li><a href="#contact">Contact</a></li>
+      <li><a href="index.html">Create Form</a></li>
+      <li style="display:none;"><a href="#about">About</a></li>
+      <li style="display:none;"><a href="#contact">Contact</a></li>
     </ul>
   </nav>
 </header>
 
+<br><br><br>
+
   <main class="container">
-    <header class="topbar">
+    <section class="topbar1">
       <h1>Basic Forms</h1>
       <p class="muted">Create surveys & shareable forms</p>
-    </header>
+    </section>
 
     <section class="card">
       <h2>Create a new form</h2>
@@ -42,13 +46,11 @@
       </label>
 
       <label class="field">
-        <span>Password (optional — stored in plain text)</span>
-        <input id="form-password" placeholder="Leave empty for no password" />
+        <span>Password</span>
+        <input id="form-password" placeholder="Leave empty for no password" type="password"/>
       </label>
-
-      <div id="questions-area">
-        <h3>Questions</h3>
-        <div id="questions-list"></div>
+	  
+	          <div id="questions-list"></div>
         <div class="row">
           <select id="new-q-type">
             <option value="short">Short text</option>
@@ -60,6 +62,10 @@
           </select>
 		  
 		  <button id="add-question-btn" class="btn">Add question</button>
+
+      <div id="questions-area">
+        <h3>Questions</h3>
+
 		  
 		  <div id="editor-wrapper"><br>
   <div id="editor-container"></div>
@@ -90,7 +96,7 @@
 	</script>
 
     <footer class="foot muted">
-      <small>Made with Firebase & Chart.js — example Google Forms–like app</small>
+      <small>Basic Forms App</small>
     </footer>
   </main>
 
