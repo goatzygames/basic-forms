@@ -378,7 +378,7 @@ function exportExcel() {
       if (Array.isArray(val)) val = val.join("; ");
       xls += `<td>${escapeHtml(val || "")}</td>`;
     });
-    xls += "</tr>`;
+    xls += "</tr>";
   });
 
   xls += "</table>";
