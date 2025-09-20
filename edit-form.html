@@ -3,194 +3,248 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Edit Form — Basic Forms</title>
+  <title>Basic Forms — Edit</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <main class="container">
-    <header class="topbar">
-      <h1>Edit Form</h1>
-      <a href="index.html">Create a Form</a>
-    </header>
-	<br><br><br>
+<br><br><br>
+<header class="topbar">
+  <a href="index.html">
+    <h1>Basic Forms</h1>
+  </a>
+  <p class="muted">Edit your existing surveys & forms</p>
+  <nav class="navbar">
+    <ul>
+      <li><a href="index.html">Create Form</a></li>
+      <li><a href="form.html">View Form</a></li>
+    </ul>
+  </nav>
+</header>
 
-    <!-- Password gate -->
-    <section id="password-card" class="card">
-      <h2>Enter Password</h2>
-      <input id="password-input" type="password" placeholder="Form password" />
-      <button id="unlock-btn" class="btn primary">Unlock</button>
-      <p class="muted">If no password was set, leave blank.</p>
-    </section>
+<br><br><br>
 
-    <!-- Editor -->
-    <section id="editor-card" class="card hidden">
-      <h2>Form Settings</h2>
-      <label class="field">
-        <span>Form title</span>
-        <input id="edit-title" />
-      </label>
-      <label class="field">
-        <span>Creator name</span>
-        <input id="edit-creator" />
-      </label>
-      <label class="field">
-        <span>Password (leave empty to keep current)</span>
-        <input id="edit-pass" type="password" />
-      </label>
+<main class="container">
+  <section class="card">
+    <h2>Edit Form</h2>
 
+    <label class="field">
+      <span>Form name</span>
+      <input id="form-name" />
+    </label>
+
+    <label class="field">
+      <span>Creator name</span>
+      <input id="creator-name" />
+    </label>
+
+    <label class="field">
+      <span>Password (leave blank to keep unchanged)</span>
+      <input id="form-password" type="password" />
+    </label>
+
+    <h2>Edit Questions</h2>
+    <div class="row">
+      <select id="new-q-type">
+        <option value="short">Short text</option>
+        <option value="paragraph">Paragraph</option>
+        <option value="multiple">Multiple choice</option>
+        <option value="checkboxes">Checkboxes</option>
+        <option value="dropdown">Dropdown</option>
+        <option value="linear">Linear scale (1..5)</option>
+      </select>
+      <button id="add-question-btn" class="btn">Add question</button>
+    </div>
+
+    <div id="questions-area">
       <h3>Questions</h3>
       <div id="questions-list"></div>
+      <div id="editor-wrapper"><br>
+        <div id="editor-container"></div>
+      </div>
+    </div>
 
+    <div class="row right">
+      <button id="update-form-btn" class="btn primary">Update Form</button>
+    </div>
+
+    <div id="share-area" class="share hidden">
+      <p>Form link:</p>
+      <input id="share-link" readonly />
       <div class="row">
-        <select id="new-q-type">
-          <option value="short">Short text</option>
-          <option value="paragraph">Paragraph</option>
-          <option value="multiple">Multiple choice</option>
-          <option value="checkboxes">Checkboxes</option>
-          <option value="dropdown">Dropdown</option>
-          <option value="linear">Linear scale</option>
-        </select>
-        <button id="add-question-btn" class="btn">Add Question</button>
+        <a id="open-link" class="btn" target="_blank">Open form</a>
       </div>
-
-      <div class="row right">
-        <button id="save-btn" class="btn primary">Save Changes</button>
-        <button id="reset-btn" class="btn">Reset Answers</button>
-      </div>
-    </section>
-
-    <section id="noaccess" class="card hidden">
-      <h2>No Access</h2>
-      <p>The password is incorrect.</p>
-    </section>
-  </main>
+    </div>
+  </section>
 
   <footer class="foot muted">
-    <small>Editing powered by Firebase</small>
+    <small>Basic Forms App</small>
   </footer>
+</main>
 
-  <script type="module" src="main.js"></script>
-  <script type="module">
-    import {
-      fetchFormDoc,
-      updateFormDoc,
-      uidShort
-    } from './main.js';
+<script type="module">
+  import { getFormDoc, updateFormDoc, uidShort } from './main.js';
 
-    const params = new URLSearchParams(location.search);
-    const formId = params.get('id');
+  const urlParams = new URLSearchParams(window.location.search);
+  const formId = urlParams.get('id');
 
-    const pwCard = document.getElementById('password-card');
-    const pwInput = document.getElementById('password-input');
-    const unlockBtn = document.getElementById('unlock-btn');
+  const qList = document.getElementById('questions-list');
+  const addBtn = document.getElementById('add-question-btn');
+  const newQType = document.getElementById('new-q-type');
+  const updateBtn = document.getElementById('update-form-btn');
+  const shareLinkInput = document.getElementById('share-link');
+  const openLink = document.getElementById('open-link');
 
-    const editorCard = document.getElementById('editor-card');
-    const noaccess = document.getElementById('noaccess');
-    const titleInput = document.getElementById('edit-title');
-    const creatorInput = document.getElementById('edit-creator');
-    const passInput = document.getElementById('edit-pass');
-    const qList = document.getElementById('questions-list');
-    const addQBtn = document.getElementById('add-question-btn');
-    const newQType = document.getElementById('new-q-type');
-    const saveBtn = document.getElementById('save-btn');
-    const resetBtn = document.getElementById('reset-btn');
+  let formObj = null;
+  let questions = [];
 
-    let currentForm = null;
-
-    unlockBtn.onclick = async () => {
-      const doc = await fetchFormDoc(formId);
-      if (!doc) {
-        alert('Form not found.');
-        return;
-      }
-      // check password
-      if (doc.password && doc.password !== pwInput.value) {
-        pwCard.classList.add('hidden');
-        noaccess.classList.remove('hidden');
-        return;
-      }
-      currentForm = doc;
-      pwCard.classList.add('hidden');
-      editorCard.classList.remove('hidden');
-      renderEditor();
-    };
-
-    function renderEditor() {
-      titleInput.value = currentForm.name || '';
-      creatorInput.value = currentForm.creatorName || '';
-      passInput.value = '';
-
-      qList.innerHTML = '';
-      (currentForm.questions || []).forEach(q => {
-        const row = document.createElement('div');
-        row.className = 'field';
-        row.innerHTML = `
-          <input data-id="${q.id}" value="${q.label}" />
-          <button data-id="${q.id}" class="btn small remove-btn">Remove</button>
-        `;
-        qList.appendChild(row);
-      });
-
-      qList.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.onclick = () => {
-          const id = btn.getAttribute('data-id');
-          currentForm.questions = currentForm.questions.filter(q => q.id !== id);
-          renderEditor();
-        };
-      });
+  // --- Load form ---
+  async function loadForm() {
+    if (!formId) {
+      alert('Missing form ID.');
+      return;
     }
+    try {
+      formObj = await getFormDoc(formId);
+      if (!formObj) return alert('Form not found.');
+      document.getElementById('form-name').value = formObj.name;
+      document.getElementById('creator-name').value = formObj.creatorName || '';
+      questions = formObj.questions || [];
+      renderQuestions();
+      const link = `${location.origin}${location.pathname.replace(/edit-form\.html$/, '')}form.html?id=${encodeURIComponent(formId)}`;
+      shareLinkInput.value = link;
+      openLink.href = link;
+      document.getElementById('share-area').classList.remove('hidden');
+    } catch (e) {
+      console.error(e);
+      alert('Error loading form.');
+    }
+  }
 
-    addQBtn.onclick = e => {
-      e.preventDefault();
-      const q = {
-        id: uidShort(),
-        type: newQType.value,
-        label: 'New question',
-        options: (['multiple','checkboxes','dropdown'].includes(newQType.value) ? ['Option 1','Option 2'] : []),
-        scaleMin: (newQType.value === 'linear' ? 1 : undefined),
-        scaleMax: (newQType.value === 'linear' ? 5 : undefined),
-        required: false
-      };
-      currentForm.questions = [...(currentForm.questions || []), q];
-      renderEditor();
-    };
+  // --- Render questions ---
+  function renderQuestions() {
+    qList.innerHTML = '';
+    questions.forEach((q, idx) => {
+      const div = document.createElement('div');
+      div.className = 'question-edit';
+      div.innerHTML = `
+        <div class="q-head">
+          <strong>${idx + 1}. ${escapeHtml(q.label || '(no label)')}</strong>
+          <div>
+            <button class="btn small edit">Edit</button>
+            <button class="btn small danger delete">Delete</button>
+          </div>
+        </div>
+        <div class="q-meta">
+          <em>${typeToLabel(q.type)}</em>
+          ${q.type === 'multiple' || q.type === 'checkboxes' || q.type === 'dropdown'
+            ? `<div class="options">Options: ${q.options.map(o => escapeHtml(o)).join(', ')}</div>` : ''}
+          ${q.type === 'linear'
+            ? `<div class="options">Scale: ${q.scaleMin} — ${q.scaleMax}</div>` : ''}
+        </div>
+      `;
+      div.querySelector('.delete').onclick = () => { questions.splice(idx, 1); renderQuestions(); };
+      div.querySelector('.edit').onclick = () => { openEditor(idx); };
+      qList.appendChild(div);
+    });
+  }
 
-    saveBtn.onclick = async () => {
-      currentForm.name = titleInput.value.trim();
-      currentForm.creatorName = creatorInput.value.trim();
-      if (passInput.value.trim()) {
-        currentForm.password = passInput.value.trim();
+  // --- Question editor modal ---
+  function openEditor(index) {
+    const q = questions[index];
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-card">
+        <h3>Edit question</h3>
+        <label class="field"><span>Label</span><input id="qe-label" value="${escapeAttr(q.label)}"></label>
+        <label class="field"><span>Required</span><input id="qe-required" type="checkbox" ${q.required ? 'checked' : ''}></label>
+        <div id="qe-options-area"></div>
+        <div class="row right">
+          <button id="qe-save" class="btn primary">Save</button>
+          <button id="qe-cancel" class="btn">Cancel</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('editor-container').appendChild(modal);
+    const area = modal.querySelector('#qe-options-area');
+    if (['multiple','checkboxes','dropdown'].includes(q.type)) {
+      area.innerHTML = `<label class="field"><span>Options (one per line)</span><textarea id="qe-options" rows="5">${escapeAttr(q.options.join('\n'))}</textarea></label>`;
+    } else if (q.type === 'linear') {
+      area.innerHTML = `<div class="row"><label class="field"><span>Min</span><input id="qe-min" type="number" value="${q.scaleMin}"></label><label class="field"><span>Max</span><input id="qe-max" type="number" value="${q.scaleMax}"></label></div>`;
+    }
+    modal.querySelector('#qe-cancel').onclick = () => modal.remove();
+    modal.querySelector('#qe-save').onclick = () => {
+      q.label = modal.querySelector('#qe-label').value.trim() || '(no label)';
+      q.required = modal.querySelector('#qe-required').checked;
+      if (['multiple','checkboxes','dropdown'].includes(q.type)) {
+        q.options = modal.querySelector('#qe-options').value.split('\n').map(s => s.trim()).filter(Boolean);
+      } else if (q.type === 'linear') {
+        q.scaleMin = Number(modal.querySelector('#qe-min').value) || 1;
+        q.scaleMax = Number(modal.querySelector('#qe-max').value) || (q.scaleMin+1);
       }
-      // update question labels from inputs
-      qList.querySelectorAll('input[data-id]').forEach(inp => {
-        const q = currentForm.questions.find(x => x.id === inp.getAttribute('data-id'));
-        if (q) q.label = inp.value;
-      });
-
-      try {
-        await updateFormDoc(formId, {
-          name: currentForm.name,
-          creatorName: currentForm.creatorName,
-          password: currentForm.password,
-          questions: currentForm.questions
-        });
-        alert('Changes saved.');
-      } catch (err) {
-        console.error(err);
-        alert('Error saving changes.');
-      }
+      questions[index] = q;
+      modal.remove();
+      renderQuestions();
     };
+  }
 
-    resetBtn.onclick = async () => {
-      if (!confirm('Delete ALL answers?')) return;
-      try {
-        await updateFormDoc(formId, { answers: [] });
-        alert('Answers reset.');
-      } catch (err) {
-        console.error(err);
-        alert('Error resetting answers.');
-      }
+  // --- Add new question ---
+  addBtn.onclick = () => {
+    const type = newQType.value;
+    const q = {
+      id: uidShort(),
+      type,
+      label: typeToLabel(type),
+      required: false,
+      options: [],
+      scaleMin: 1,
+      scaleMax: 5
     };
-  </script>
+    if (['multiple','checkboxes','dropdown'].includes(type)) {
+      q.options = ['Option 1','Option 2','Option 3'];
+    }
+    if (type === 'linear') {
+      q.scaleMin = 1; q.scaleMax = 5;
+    }
+    questions.push(q);
+    renderQuestions();
+  };
+
+  // --- Update form ---
+  updateBtn.onclick = async () => {
+    const name = document.getElementById('form-name').value.trim();
+    if (!name) return alert('Form name required.');
+    const creatorName = document.getElementById('creator-name').value.trim() || 'Anonymous';
+    const password = document.getElementById('form-password').value;
+    formObj.name = name;
+    formObj.creatorName = creatorName;
+    if (password) formObj.password = password; // only update if entered
+    formObj.questions = questions;
+    try {
+      await updateFormDoc(formId, formObj);
+      alert('Form updated!');
+    } catch (e) {
+      console.error(e);
+      alert('Error updating form.');
+    }
+  };
+
+  function typeToLabel(t){
+    switch (t){
+      case 'short': return 'Short text';
+      case 'paragraph': return 'Paragraph';
+      case 'multiple': return 'Multiple choice';
+      case 'checkboxes': return 'Checkboxes';
+      case 'dropdown': return 'Dropdown';
+      case 'linear': return 'Linear scale';
+      default: return t;
+    }
+  }
+  function escapeHtml(s){return (s+'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function escapeAttr(s){return (s+'').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+  loadForm();
+</script>
 </body>
 </html>
