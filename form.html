@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Basic Form — Answer</title>
+  <title>Basic Form — Form</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -12,10 +12,15 @@
     <header class="topbar">
       <h1 id="form-title">Loading…</h1>
       <p id="form-meta" class="muted"></p>
+	  <a href="index.html">Create a Form</a>
+	  
     </header>
+	<br><br><br>
 
     <section id="form-card" class="card hidden">
       <form id="answer-form"></form>
+	  
+	  <a id="edit-link" href="#" class="btn">Edit this Form</a>
 
       <div class="row right">
         <button id="submit-answer" class="btn primary">Submit</button>
@@ -28,7 +33,7 @@
       </div>
     </section>
 
-    <div id="notfound" class="card hidden">
+    <div id="notfound" class="card hidden" style="display:none;">
       <h2>Form not found</h2>
       <p>Check the link or ask the creator for the correct shareable link.</p>
     </div>
@@ -58,12 +63,15 @@
     const resultsContent = document.getElementById('results-content');
     const toggleResults = document.getElementById('toggle-results');
 
-    if (!formId) {
-      titleEl.textContent = 'Invalid form link';
-      notfound.classList.remove('hidden');
-    } else {
-      loadForm(formId);
-    }
+if (!formId) {
+  titleEl.textContent = 'Invalid form link';
+  notfound.classList.remove('hidden');
+} else {
+  loadForm(formId);
+}
+
+document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
+
 
     let currentForm = null;
     let charts = {}; // map question.id -> Chart instance

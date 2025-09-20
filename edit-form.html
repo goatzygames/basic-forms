@@ -3,34 +3,46 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Basic Form — Edit</title>
+  <title>Edit Form — Basic Forms</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="container">
     <header class="topbar">
-      <h1>Edit form</h1>
-      <p class="muted">Enter the form ID and password to edit</p>
+      <h1>Edit Form</h1>
+      <a href="index.html">Create a Form</a>
     </header>
+	<br><br><br>
 
-    <section class="card">
-      <label class="field"><span>Form ID</span><input id="edit-id" placeholder="form-id-abc123" /></label>
-      <label class="field"><span>Password</span><input id="edit-password" placeholder="If creator set one" /></label>
-      <div class="row right">
-        <button id="load-btn" class="btn primary">Load</button>
-      </div>
+    <!-- Password gate -->
+    <section id="password-card" class="card">
+      <h2>Enter Password</h2>
+      <input id="password-input" type="password" placeholder="Form password" />
+      <button id="unlock-btn" class="btn primary">Unlock</button>
+      <p class="muted">If no password was set, leave blank.</p>
     </section>
 
-    <section id="editor" class="card hidden">
-      <h2 id="edit-form-name"></h2>
-      <label class="field"><span>Form name</span><input id="edit-name" /></label>
-      <label class="field"><span>Creator</span><input id="edit-creator" /></label>
+    <!-- Editor -->
+    <section id="editor-card" class="card hidden">
+      <h2>Form Settings</h2>
+      <label class="field">
+        <span>Form title</span>
+        <input id="edit-title" />
+      </label>
+      <label class="field">
+        <span>Creator name</span>
+        <input id="edit-creator" />
+      </label>
+      <label class="field">
+        <span>Password (leave empty to keep current)</span>
+        <input id="edit-pass" type="password" />
+      </label>
 
       <h3>Questions</h3>
-      <div id="editor-questions"></div>
+      <div id="questions-list"></div>
 
       <div class="row">
-        <select id="editor-add-type">
+        <select id="new-q-type">
           <option value="short">Short text</option>
           <option value="paragraph">Paragraph</option>
           <option value="multiple">Multiple choice</option>
@@ -38,22 +50,24 @@
           <option value="dropdown">Dropdown</option>
           <option value="linear">Linear scale</option>
         </select>
-        <button id="editor-add-btn" class="btn">Add question</button>
+        <button id="add-question-btn" class="btn">Add Question</button>
       </div>
 
-      <div class="row">
-        <button id="save-changes" class="btn primary">Save changes</button>
-        <button id="reset-answers" class="btn danger">Reset/Delete all answers</button>
+      <div class="row right">
+        <button id="save-btn" class="btn primary">Save Changes</button>
+        <button id="reset-btn" class="btn">Reset Answers</button>
       </div>
     </section>
 
-    <div id="noaccess" class="card hidden">
-      <h3>Access denied</h3>
-      <p>Form not found or password is incorrect.</p>
-    </div>
-
-    <footer class="foot muted"><small>Changes are saved directly to Firebase.</small></footer>
+    <section id="noaccess" class="card hidden">
+      <h2>No Access</h2>
+      <p>The password is incorrect.</p>
+    </section>
   </main>
+
+  <footer class="foot muted">
+    <small>Editing powered by Firebase</small>
+  </footer>
 
   <script type="module" src="main.js"></script>
   <script type="module">
@@ -63,168 +77,120 @@
       uidShort
     } from './main.js';
 
-    const loadBtn = document.getElementById('load-btn');
-    const editIdInput = document.getElementById('edit-id');
-    const editPasswordInput = document.getElementById('edit-password');
-    const editor = document.getElementById('editor');
+    const params = new URLSearchParams(location.search);
+    const formId = params.get('id');
+
+    const pwCard = document.getElementById('password-card');
+    const pwInput = document.getElementById('password-input');
+    const unlockBtn = document.getElementById('unlock-btn');
+
+    const editorCard = document.getElementById('editor-card');
     const noaccess = document.getElementById('noaccess');
-    const editName = document.getElementById('edit-name');
-    const editCreator = document.getElementById('edit-creator');
-    const editFormName = document.getElementById('edit-form-name');
-    const editorQuestions = document.getElementById('editor-questions');
-    const addType = document.getElementById('editor-add-type');
-    const addBtn = document.getElementById('editor-add-btn');
-    const saveBtn = document.getElementById('save-changes');
-    const resetBtn = document.getElementById('reset-answers');
+    const titleInput = document.getElementById('edit-title');
+    const creatorInput = document.getElementById('edit-creator');
+    const passInput = document.getElementById('edit-pass');
+    const qList = document.getElementById('questions-list');
+    const addQBtn = document.getElementById('add-question-btn');
+    const newQType = document.getElementById('new-q-type');
+    const saveBtn = document.getElementById('save-btn');
+    const resetBtn = document.getElementById('reset-btn');
 
     let currentForm = null;
 
-    // If id present in URL, prefill
-    const params = new URLSearchParams(location.search);
-    if (params.get('id')) editIdInput.value = params.get('id');
-
-    loadBtn.onclick = async () => {
-      const id = editIdInput.value.trim();
-      const pw = editPasswordInput.value;
-      if (!id) return alert('Enter form ID.');
-      const doc = await fetchFormDoc(id);
+    unlockBtn.onclick = async () => {
+      const doc = await fetchFormDoc(formId);
       if (!doc) {
-        editor.classList.add('hidden');
-        noaccess.classList.remove('hidden');
+        alert('Form not found.');
         return;
       }
-      // password check (plain text)
-      if ((doc.password || '') !== (pw || '')) {
-        editor.classList.add('hidden');
+      // check password
+      if (doc.password && doc.password !== pwInput.value) {
+        pwCard.classList.add('hidden');
         noaccess.classList.remove('hidden');
         return;
       }
       currentForm = doc;
-      editFormName.textContent = doc.name;
-      editName.value = doc.name;
-      editCreator.value = doc.creatorName || '';
-      noaccess.classList.add('hidden');
-      editor.classList.remove('hidden');
-      renderEditorQuestions();
+      pwCard.classList.add('hidden');
+      editorCard.classList.remove('hidden');
+      renderEditor();
     };
 
-    function renderEditorQuestions() {
-      editorQuestions.innerHTML = '';
-      (currentForm.questions || []).forEach((q, idx) => {
-        const div = document.createElement('div');
-        div.className = 'question-edit';
-        div.innerHTML = `
-          <div class="q-head">
-            <strong>${idx + 1}. ${escapeHtml(q.label)}</strong>
-            <div>
-              <button class="btn small edit">Edit</button>
-              <button class="btn small danger del">Delete</button>
-            </div>
-          </div>
-          <div class="q-meta"><em>${q.type}</em></div>
+    function renderEditor() {
+      titleInput.value = currentForm.name || '';
+      creatorInput.value = currentForm.creatorName || '';
+      passInput.value = '';
+
+      qList.innerHTML = '';
+      (currentForm.questions || []).forEach(q => {
+        const row = document.createElement('div');
+        row.className = 'field';
+        row.innerHTML = `
+          <input data-id="${q.id}" value="${q.label}" />
+          <button data-id="${q.id}" class="btn small remove-btn">Remove</button>
         `;
-        div.querySelector('.del').onclick = () => {
-          if (!confirm('Delete this question?')) return;
-          currentForm.questions.splice(idx, 1);
-          renderEditorQuestions();
+        qList.appendChild(row);
+      });
+
+      qList.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.getAttribute('data-id');
+          currentForm.questions = currentForm.questions.filter(q => q.id !== id);
+          renderEditor();
         };
-        div.querySelector('.edit').onclick = () => editQuestion(idx);
-        editorQuestions.appendChild(div);
       });
     }
 
-    addBtn.onclick = () => {
-      const type = addType.value;
+    addQBtn.onclick = e => {
+      e.preventDefault();
       const q = {
         id: uidShort(),
-        type,
-        label: type === 'short' ? 'Short question' : 'New question',
-        required: false,
-        options: type === 'multiple' || type === 'checkboxes' || type === 'dropdown' ? ['Option 1', 'Option 2'] : [],
-        scaleMin: 1,
-        scaleMax: 5
+        type: newQType.value,
+        label: 'New question',
+        options: (['multiple','checkboxes','dropdown'].includes(newQType.value) ? ['Option 1','Option 2'] : []),
+        scaleMin: (newQType.value === 'linear' ? 1 : undefined),
+        scaleMax: (newQType.value === 'linear' ? 5 : undefined),
+        required: false
       };
-      currentForm.questions.push(q);
-      renderEditorQuestions();
+      currentForm.questions = [...(currentForm.questions || []), q];
+      renderEditor();
     };
 
-    function editQuestion(i) {
-      const q = currentForm.questions[i];
-      const modal = document.createElement('div');
-      modal.className = 'modal';
-      modal.innerHTML = `
-        <div class="modal-card">
-          <h3>Edit question</h3>
-          <label class="field"><span>Label</span><input id="q-label" value="${escapeAttr(q.label)}" /></label>
-          <label class="field"><span>Required</span><input id="q-required" type="checkbox" ${q.required ? 'checked' : ''}></label>
-          <div id="q-extra"></div>
-          <div class="row right">
-            <button id="q-save" class="btn primary">Save</button>
-            <button id="q-cancel" class="btn">Cancel</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-      const extra = modal.querySelector('#q-extra');
-      if (q.type === 'multiple' || q.type === 'checkboxes' || q.type === 'dropdown') {
-        extra.innerHTML = `<label class="field"><span>Options (one per line)</span><textarea id="q-options" rows="5">${escapeAttr(q.options.join('\n'))}</textarea></label>`;
-      } else if (q.type === 'linear') {
-        extra.innerHTML = `
-          <div class="row">
-            <label class="field"><span>Min</span><input id="q-min" type="number" value="${q.scaleMin}"></label>
-            <label class="field"><span>Max</span><input id="q-max" type="number" value="${q.scaleMax}"></label>
-          </div>`;
-      }
-
-      modal.querySelector('#q-cancel').onclick = () => modal.remove();
-      modal.querySelector('#q-save').onclick = () => {
-        q.label = modal.querySelector('#q-label').value.trim() || q.label;
-        q.required = modal.querySelector('#q-required').checked;
-        if (q.type === 'multiple' || q.type === 'checkboxes' || q.type === 'dropdown') {
-          q.options = modal.querySelector('#q-options').value.split('\n').map(s=>s.trim()).filter(Boolean);
-        } else if (q.type === 'linear') {
-          q.scaleMin = Number(modal.querySelector('#q-min').value) || 1;
-          q.scaleMax = Number(modal.querySelector('#q-max').value) || 5;
-          if (q.scaleMin >= q.scaleMax) q.scaleMax = q.scaleMin + 1;
-        }
-        currentForm.questions[i] = q;
-        modal.remove();
-        renderEditorQuestions();
-      };
-    }
-
     saveBtn.onclick = async () => {
-      // write changes
-      currentForm.name = editName.value.trim() || currentForm.name;
-      currentForm.creatorName = editCreator.value.trim() || currentForm.creatorName;
+      currentForm.name = titleInput.value.trim();
+      currentForm.creatorName = creatorInput.value.trim();
+      if (passInput.value.trim()) {
+        currentForm.password = passInput.value.trim();
+      }
+      // update question labels from inputs
+      qList.querySelectorAll('input[data-id]').forEach(inp => {
+        const q = currentForm.questions.find(x => x.id === inp.getAttribute('data-id'));
+        if (q) q.label = inp.value;
+      });
+
       try {
-        await updateFormDoc(currentForm.id, {
+        await updateFormDoc(formId, {
           name: currentForm.name,
           creatorName: currentForm.creatorName,
+          password: currentForm.password,
           questions: currentForm.questions
         });
-        alert('Saved.');
-        editFormName.textContent = currentForm.name;
+        alert('Changes saved.');
       } catch (err) {
         console.error(err);
-        alert('Failed to save.');
+        alert('Error saving changes.');
       }
     };
 
     resetBtn.onclick = async () => {
-      if (!confirm('This will permanently delete all answers. Continue?')) return;
+      if (!confirm('Delete ALL answers?')) return;
       try {
-        await updateFormDoc(currentForm.id, { answers: [] });
-        alert('All answers deleted.');
+        await updateFormDoc(formId, { answers: [] });
+        alert('Answers reset.');
       } catch (err) {
         console.error(err);
-        alert('Failed to reset answers.');
+        alert('Error resetting answers.');
       }
     };
-
-    // small helpers
-    function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, (m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-    function escapeAttr(s){ return (s+'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
   </script>
 </body>
 </html>
