@@ -36,10 +36,15 @@
         <button id="toggle-results" class="btn">See Results</button>
       </div>
 
-      <div id="result-area" class="hidden">
-        <h3>Results</h3>
-        <div id="results-content"></div>
-      </div>
+<div id="result-area" class="hidden">
+  <h3>Results</h3>
+  <div id="results-content"></div>
+  <div class="export-buttons">
+    <button id="export-csv" class="btn">Export CSV</button>
+    <button id="export-excel" class="btn">Export Excel</button>
+  </div>
+</div>
+
     </section>
 
     <div id="notfound" class="card hidden" style="display:none;">
@@ -245,116 +250,112 @@ document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
       }
     };
 
-    function renderResults() {
-      resultsContent.innerHTML = '';
-      const questions = (currentForm.questions || []);
-      const answers = (currentForm.answers || []);
-      if (!answers.length) {
-        resultsContent.innerHTML = '<p class="muted">No responses yet.</p>';
-        return;
-      }
-      // for each question, show aggregated view
-      questions.forEach(q => {
-        const qCard = document.createElement('div');
-        qCard.className = 'result-question';
-        qCard.innerHTML = `<h4>${escapeHtml(q.label)}</h4>`;
-        // depending on type show chart or list
-        if (q.type === 'multiple' || q.type === 'dropdown' || q.type === 'checkboxes') {
-          // compute counts
-          const counts = {};
-          const options = (q.options || []).slice();
-          // init counts for options
-          options.forEach(opt => counts[opt] = 0);
-          answers.forEach(a => {
-            const v = a.values[q.id];
-            if (Array.isArray(v)) {
-              v.forEach(x => { if (counts[x] !== undefined) counts[x]++; else counts[x] = (counts[x]||0)+1; });
-            } else {
-              if (v === '' || v === null || v === undefined) { /* skip */ }
-              else {
-                if (counts[v] !== undefined) counts[v]++; else counts[v] = (counts[v]||0)+1;
-              }
-            }
-          });
+ function renderResults() {
+  resultsContent.innerHTML = '';
+  const questions = (currentForm.questions || []);
+  const answers = (currentForm.answers || []);
+  if (!answers.length) {
+    resultsContent.innerHTML = '<p class="muted">No responses yet.</p>';
+    return;
+  }
 
-          // create canvas
-          const canvas = document.createElement('canvas');
-          canvas.id = 'chart-' + q.id;
-          qCard.appendChild(canvas);
-          resultsContent.appendChild(qCard);
+  // Show each question
+  questions.forEach(q => {
+    const qCard = document.createElement('div');
+    qCard.className = 'result-question';
+    qCard.innerHTML = `<h4>${escapeHtml(q.label)}</h4>`;
 
-          // prepare data
-          const labels = Object.keys(counts);
-          const data = Object.values(counts);
-          // destroy existing chart if present
-          if (charts[q.id]) {
-            charts[q.id].destroy();
-            delete charts[q.id];
-          }
-          charts[q.id] = new Chart(canvas.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-              labels,
-              datasets: [{
-                data
-              }]
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: { position: 'bottom' },
-                title: { display: false }
-              }
-            }
-          });
-        } else {
-          // text or linear results: show list or stats
-          if (q.type === 'short' || q.type === 'paragraph') {
-            const list = document.createElement('ul');
-            list.className = 'text-answers';
-            answers.forEach(a => {
-              const v = a.values[q.id];
-              if (v && v.toString().trim()) {
-                const li = document.createElement('li');
-                li.textContent = v;
-                list.appendChild(li);
-              }
-            });
-            if (!list.children.length) {
-              qCard.innerHTML += '<p class="muted">No responses yet.</p>';
-            } else {
-              qCard.appendChild(list);
-            }
-            resultsContent.appendChild(qCard);
-          } else if (q.type === 'linear') {
-            // compute min/avg/max
-            const vals = answers.map(a => Number(a.values[q.id]) || 0).filter(v => v !== 0 || v === 0);
-            if (!vals.length) {
-              qCard.innerHTML += '<p class="muted">No responses yet.</p>';
-            } else {
-              const sum = vals.reduce((s, n) => s + n, 0);
-              const avg = (sum / vals.length).toFixed(2);
-              const min = Math.min(...vals);
-              const max = Math.max(...vals);
-              qCard.innerHTML += `<p>Responses: ${vals.length} — avg: ${avg}, min: ${min}, max: ${max}</p>`;
-              // small bar chart
-              const canvas = document.createElement('canvas');
-              qCard.appendChild(canvas);
-              resultsContent.appendChild(qCard);
-              if (charts[q.id]) { charts[q.id].destroy(); delete charts[q.id]; }
-              charts[q.id] = new Chart(canvas.getContext('2d'), {
-                type: 'bar',
-                data: {
-                  labels: vals.map((_, i) => `#${i+1}`),
-                  datasets: [{ data: vals }]
-                },
-                options: { responsive: true, plugins: { legend: { display: false } } }
-              });
-            }
-          }
+    if (q.type === 'short' || q.type === 'paragraph') {
+      // Table for text answers with submission date
+      const table = document.createElement('table');
+      table.className = 'answers-table';
+      table.innerHTML = `<thead><tr><th>Answer</th><th>Date</th></tr></thead><tbody></tbody>`;
+      const tbody = table.querySelector('tbody');
+
+      answers.forEach(a => {
+        const v = a.values[q.id];
+        if (v && v.toString().trim()) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${escapeHtml(v)}</td><td>${new Date(a.submittedAt).toLocaleString()}</td>`;
+          tbody.appendChild(tr);
         }
       });
+
+      if (!tbody.children.length) {
+        qCard.innerHTML += '<p class="muted">No responses yet.</p>';
+      } else {
+        qCard.appendChild(table);
+      }
+      resultsContent.appendChild(qCard);
+
+    } else if (q.type === 'multiple' || q.type === 'dropdown' || q.type === 'checkboxes') {
+      // (Keep your chart code here, unchanged)
+      // ...
+    } else if (q.type === 'linear') {
+      // (Keep your stats + chart code here, unchanged)
+      // ...
     }
+  });
+}
+
+// --- Export helpers ---
+function exportCSV() {
+  if (!currentForm || !currentForm.answers?.length) return;
+
+  let csv = "Submitted At," + currentForm.questions.map(q => `"${q.label}"`).join(",") + "\n";
+  currentForm.answers.forEach(a => {
+    let row = `"${new Date(a.submittedAt).toLocaleString()}"`;
+    currentForm.questions.forEach(q => {
+      let val = a.values[q.id];
+      if (Array.isArray(val)) val = val.join("; ");
+      row += `,"${val || ""}"`;
+    });
+    csv += row + "\n";
+  });
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${currentForm.name || "form_results"}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function exportExcel() {
+  if (!currentForm || !currentForm.answers?.length) return;
+
+  // Simple Excel export using CSV with .xls extension
+  let xls = "<table><tr><th>Submitted At</th>";
+  currentForm.questions.forEach(q => xls += `<th>${escapeHtml(q.label)}</th>`);
+  xls += "</tr>";
+
+  currentForm.answers.forEach(a => {
+    xls += "<tr>";
+    xls += `<td>${new Date(a.submittedAt).toLocaleString()}</td>`;
+    currentForm.questions.forEach(q => {
+      let val = a.values[q.id];
+      if (Array.isArray(val)) val = val.join("; ");
+      xls += `<td>${escapeHtml(val || "")}</td>`;
+    });
+    xls += "</tr>";
+  });
+
+  xls += "</table>";
+  const blob = new Blob([xls], { type: "application/vnd.ms-excel" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${currentForm.name || "form_results"}.xls`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+document.getElementById("export-csv").onclick = exportCSV;
+document.getElementById("export-excel").onclick = exportExcel;
+
 
     // helpers
     function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, (m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
