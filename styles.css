@@ -667,3 +667,28 @@ input[type="number"]::-webkit-outer-spin-button {
     display: flex;
   }
 }
+
+.answers-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.answers-table th,
+.answers-table td {
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.answers-table th {
+  border-bottom: 2px solid #ccc;
+}
+
+.answers-table td {
+  border-bottom: 1px solid #eee;
+}
+
+.answers-table td + td {
+  border-left: 1px solid #ccc; /* separator between date and answer */
+  padding-left: 16px;          /* optional spacing */
+}
