@@ -86,7 +86,6 @@ if (!formId) {
 
 document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
 
-
     let currentForm = null;
     let charts = {}; // map question.id -> Chart instance
 
@@ -103,10 +102,8 @@ document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
         renderQuestionsUI(doc.questions || []);
         card.classList.remove('hidden');
 
-        // listen for realtime updates (answers added / edits)
         listenFormRealtime(id, (updatedDoc) => {
           currentForm = updatedDoc;
-          // if results visible, refresh them
           if (!resultsArea.classList.contains('hidden')) {
             renderResults();
           }
@@ -169,7 +166,6 @@ document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
         }
 
         wrapper.appendChild(inputEl);
-        // for linear range, update output
         if (q.type === 'linear') {
           const out = wrapper.querySelector(`#${q.id}_out`);
           const range = wrapper.querySelector(`#${q.id}_range`);
@@ -184,7 +180,6 @@ document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
     submitBtn.onclick = async (e) => {
       e.preventDefault();
       if (!currentForm) return;
-      // collect answers
       const answers = {};
       let valid = true;
       (currentForm.questions || []).forEach(q => {
@@ -214,7 +209,6 @@ document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
       });
       if (!valid) return;
 
-      // push answer object
       const answerObj = {
         submittedAt: new Date().toISOString(),
         values: answers
@@ -222,9 +216,7 @@ document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
       try {
         await submitFormAnswer(currentForm.id, answerObj);
         alert('Thanks — your response was submitted.');
-        // clear form inputs
         answerForm.reset();
-        // also update range outputs if present
         (currentForm.questions || []).forEach(q => {
           if (q.type === 'linear') {
             const out = answerForm.querySelector(`#${q.id}_out`);
@@ -250,7 +242,7 @@ document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
       }
     };
 
- function renderResults() {
+function renderResults() {
   resultsContent.innerHTML = '';
   const questions = (currentForm.questions || []);
   const answers = (currentForm.answers || []);
@@ -259,14 +251,12 @@ document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
     return;
   }
 
-  // Show each question
   questions.forEach(q => {
     const qCard = document.createElement('div');
     qCard.className = 'result-question';
     qCard.innerHTML = `<h4>${escapeHtml(q.label)}</h4>`;
 
     if (q.type === 'short' || q.type === 'paragraph') {
-      // Table for text answers with submission date
       const table = document.createElement('table');
       table.className = 'answers-table';
       table.innerHTML = `<thead><tr><th>Answer</th><th>Date</th></tr></thead><tbody></tbody>`;
@@ -289,11 +279,61 @@ document.getElementById('edit-link').href = `edit-form.html?id=${formId}`;
       resultsContent.appendChild(qCard);
 
     } else if (q.type === 'multiple' || q.type === 'dropdown' || q.type === 'checkboxes') {
-      // (Keep your chart code here, unchanged)
-      // ...
+      const counts = {};
+      const options = (q.options || []).slice();
+      options.forEach(opt => counts[opt] = 0);
+
+      answers.forEach(a => {
+        const v = a.values[q.id];
+        if (Array.isArray(v)) {
+          v.forEach(x => { counts[x] = (counts[x] || 0) + 1; });
+        } else if (v) {
+          counts[v] = (counts[v] || 0) + 1;
+        }
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.id = 'chart-' + q.id;
+      qCard.appendChild(canvas);
+      resultsContent.appendChild(qCard);
+
+      const labels = Object.keys(counts);
+      const data = Object.values(counts);
+      if (charts[q.id]) charts[q.id].destroy();
+      charts[q.id] = new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data }] },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+
     } else if (q.type === 'linear') {
-      // (Keep your stats + chart code here, unchanged)
-      // ...
+      const vals = answers.map(a => Number(a.values[q.id])).filter(v => !isNaN(v));
+      if (!vals.length) {
+        qCard.innerHTML += '<p class="muted">No responses yet.</p>';
+      } else {
+        const sum = vals.reduce((s, n) => s + n, 0);
+        const avg = (sum / vals.length).toFixed(2);
+        const min = Math.min(...vals);
+        const max = Math.max(...vals);
+        qCard.innerHTML += `<p>Responses: ${vals.length} — avg: ${avg}, min: ${min}, max: ${max}</p>`;
+
+        const canvas = document.createElement('canvas');
+        qCard.appendChild(canvas);
+        resultsContent.appendChild(qCard);
+
+        if (charts[q.id]) charts[q.id].destroy();
+        charts[q.id] = new Chart(canvas.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: vals.map((_, i) => `#${i+1}`),
+            datasets: [{ data: vals }]
+          },
+          options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+      }
     }
   });
 }
@@ -326,7 +366,6 @@ function exportCSV() {
 function exportExcel() {
   if (!currentForm || !currentForm.answers?.length) return;
 
-  // Simple Excel export using CSV with .xls extension
   let xls = "<table><tr><th>Submitted At</th>";
   currentForm.questions.forEach(q => xls += `<th>${escapeHtml(q.label)}</th>`);
   xls += "</tr>";
@@ -339,7 +378,7 @@ function exportExcel() {
       if (Array.isArray(val)) val = val.join("; ");
       xls += `<td>${escapeHtml(val || "")}</td>`;
     });
-    xls += "</tr>";
+    xls += "</tr>`;
   });
 
   xls += "</table>";
@@ -356,8 +395,6 @@ function exportExcel() {
 document.getElementById("export-csv").onclick = exportCSV;
 document.getElementById("export-excel").onclick = exportExcel;
 
-
-    // helpers
     function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, (m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
     function escapeAttr(s){ return (s+'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
   </script>
