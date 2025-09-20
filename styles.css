@@ -636,7 +636,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* Navbar links */
-.navbar a {
+a {
   text-decoration: none;
   color: #222;
   font-weight: 500;
@@ -644,7 +644,7 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: color 0.25s ease, transform 0.2s ease;
 }
 
-.navbar a:hover {
+a:hover {
   color: #4287f5;
   transform: translateY(-2px); /* Slight lift effect */
 }
@@ -691,4 +691,11 @@ input[type="number"]::-webkit-outer-spin-button {
 .answers-table td + td {
   border-left: 1px solid #ccc; /* separator between date and answer */
   padding-left: 16px;          /* optional spacing */
+}
+
+.question-edit {
+	box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+	border-radius: 8px;
+	padding-top: 0.3rem;
+	padding-bottom: 0.3rem;
 }
