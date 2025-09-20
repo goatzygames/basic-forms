@@ -696,6 +696,6 @@ a:hover {
 .question-edit {
 	box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 	border-radius: 8px;
-	padding-top: 0.3rem;
-	padding-bottom: 0.3rem;
+	padding: 0.3rem;
+	margin-bottom: -0.3rem;
 }
