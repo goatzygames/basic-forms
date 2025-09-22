@@ -29,7 +29,7 @@
       <p id="form-meta" class="muted"></p>
       <form id="answer-form"></form>
 	  
-	  <a id="edit-link" href="#" class="btn">Edit this Form</a>
+	  <a id="edit-link" href="#" class="btn" style="display:none;">Edit this Form</a>
 
       <div class="row right">
         <button id="submit-answer" class="btn primary">Submit</button>
@@ -38,10 +38,11 @@
 
 <div id="result-area" class="hidden">
   <h3>Results</h3>
-  <div id="results-content"></div>
-  <div class="export-buttons">
-    <button id="export-csv" class="btn">Export CSV</button>
-    <button id="export-excel" class="btn">Export Excel</button>
+  <div id="results-content">
+    <div class="export-buttons">
+      <button id="export-csv" class="btn">Export CSV</button>
+      <button id="export-excel" class="btn">Export EXCEL</button>
+    </div>
   </div>
 </div>
 
